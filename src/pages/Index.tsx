@@ -1,16 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { StepIndicator } from '@/components/StepIndicator';
 import { FileUpload } from '@/components/FileUpload';
 import { AnalysisPanel } from '@/components/AnalysisPanel';
 import { ResultsPanel } from '@/components/ResultsPanel';
 import { useComplianceStore } from '@/store/complianceStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 type Step = 'upload' | 'analyze' | 'results';
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState<Step>('upload');
   const { reset } = useComplianceStore();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const getStepNumber = () => {
     switch (currentStep) {
@@ -27,7 +49,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header user={user} />
       <StepIndicator currentStep={getStepNumber()} />
       
       <main>
@@ -41,7 +63,7 @@ const Index = () => {
           />
         )}
         {currentStep === 'results' && (
-          <ResultsPanel onReset={handleReset} />
+          <ResultsPanel onReset={handleReset} user={user} />
         )}
       </main>
 

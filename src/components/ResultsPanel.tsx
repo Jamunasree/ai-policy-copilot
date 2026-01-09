@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useComplianceStore } from '@/store/complianceStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -13,20 +14,24 @@ import {
 
 interface ResultsPanelProps {
   onReset: () => void;
+  user?: any;
 }
 
-export function ResultsPanel({ onReset }: ResultsPanelProps) {
+export function ResultsPanel({ onReset, user }: ResultsPanelProps) {
   const { 
     complianceResult, 
     documentText,
     generatedPolicies, 
     addGeneratedPolicy, 
     isGenerating, 
-    setIsGenerating 
+    setIsGenerating,
+    saveAnalysis,
   } = useComplianceStore();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [expandedControl, setExpandedControl] = useState<string | null>(null);
   const [policyModal, setPolicyModal] = useState<{ control: string; content: string } | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleGeneratePolicy = async (control: string) => {
     setIsGenerating(control);
@@ -59,6 +64,35 @@ export function ResultsPanel({ onReset }: ResultsPanelProps) {
       });
     } finally {
       setIsGenerating(null);
+    }
+  };
+
+  const handleSaveAnalysis = async () => {
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to save analysis',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await saveAnalysis(user.id);
+      toast({
+        title: 'Success',
+        description: 'Analysis saved to your history',
+      });
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save analysis',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -198,9 +232,15 @@ export function ResultsPanel({ onReset }: ResultsPanelProps) {
         </div>
       )}
 
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-4">
         <Button variant="outline" onClick={onReset}>
           Start New Analysis
+        </Button>
+        <Button onClick={handleSaveAnalysis} disabled={saving}>
+          {saving ? 'Saving...' : 'Save to History'}
+        </Button>
+        <Button variant="outline" onClick={() => navigate('/history')}>
+          View History
         </Button>
       </div>
 

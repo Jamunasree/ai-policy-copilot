@@ -1,13 +1,12 @@
-import * as pdfjsLib from 'pdfjs-dist';
+import { pdfjs } from 'react-pdf';
 
-// Set the worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs`;
+// Use CDN worker to avoid build issues
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export async function extractTextFromPDF(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const typedArray = new Uint8Array(arrayBuffer);
   
-  const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
   const numPages = pdf.numPages;
   
   let fullText = '';
@@ -16,7 +15,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
     const pageText = textContent.items
-      .map((item: any) => item.str)
+      .map((item: any) => ('str' in item ? item.str : ''))
       .join(' ');
     fullText += pageText + '\n\n';
   }
